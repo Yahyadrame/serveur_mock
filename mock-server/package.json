@@ -1,0 +1,21 @@
+{
+  "name": "user-service-mock",
+  "version": "1.0.0",
+  "description": "Serveur mock pour Alumni Platform - User Service API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

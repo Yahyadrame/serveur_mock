@@ -1,0 +1,554 @@
+openapi: 3.0.3
+servers:
+  - description: Local development
+    url: 'http://localhost:8080'
+  - description: Production
+    url: 'https://api.example.com/user-service'
+  - description: SwaggerHub API Auto Mocking
+    url: 'https://virtserver.swaggerhub.com/uasz-77e/user-service/1.0.0'
+info:
+  title: Alumni Platform - User Service API
+  description: |
+    API du service de gestion des utilisateurs.
+
+    Ce service gère les profils utilisateurs de la plateforme Alumni.
+    L'authentification et les autorisations sont déléguées à Keycloak.
+
+    Les utilisateurs peuvent être :
+    - ADMIN
+    - TEACHER
+    - STUDENT
+    - ALUMNI
+  version: 1.0.0
+tags:
+  - name: Users
+    description: Gestion des profils utilisateurs
+security:
+  - bearerAuth: []
+paths:
+  /users:
+    post:
+      tags:
+        - Users
+      summary: Créer un profil utilisateur
+      description: |
+        Création d'un profil métier après création de l'utilisateur
+        dans Keycloak.
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Profil créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Utilisateur déjà existant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    get:
+      tags:
+        - Users
+      summary: Rechercher les utilisateurs
+      operationId: searchUsers
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+            format: email
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/UserType'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Liste paginée des utilisateurs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Obtenir un utilisateur par ID
+      operationId: getUserById
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Utilisateur trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    patch:
+      tags:
+        - Users
+      summary: Modifier un utilisateur
+      operationId: updateUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Utilisateur modifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Conflit avec une ressource existante
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Users
+      summary: Supprimer un utilisateur
+      operationId: deleteUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Utilisateur supprimé
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Récupérer le profil de l'utilisateur connecté
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Profil courant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    patch:
+      tags:
+        - Users
+      summary: Modifier son propre profil
+      operationId: updateCurrentUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profil mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - keycloakId
+        - email
+        - firstName
+        - lastName
+        - type
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        keycloakId:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "keycloak-abc-123"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Jean"
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Dupont"
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{7,14}$'
+          example: "+33123456789"
+        photoUrl:
+          type: string
+          format: uri
+          example: "https://example.com/photos/jean.jpg"
+        biography:
+          type: string
+          maxLength: 2000
+          example: "Ancien élève passionné par l'informatique."
+        birthDate:
+          type: string
+          format: date
+          example: "1980-05-15"
+        gender:
+          $ref: '#/components/schemas/Gender'
+          example: "MALE"
+        type:
+          $ref: '#/components/schemas/UserType'
+          example: "ALUMNI"
+        status:
+          $ref: '#/components/schemas/UserStatus'
+          example: "ACTIVE"
+        address:
+          $ref: '#/components/schemas/Address'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2023-01-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2023-06-01T15:30:00Z"
+    CreateUserRequest:
+      type: object
+      required:
+        - keycloakId
+        - email
+        - firstName
+        - lastName
+      properties:
+        keycloakId:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "keycloak-abc-123"
+        email:
+          type: string
+          format: email
+          example: "newuser@example.com"
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Marie"
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Curie"
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{7,14}$'
+          example: "+33123456789"
+        type:
+          $ref: '#/components/schemas/UserType'
+          example: "STUDENT"
+        address:
+          $ref: '#/components/schemas/Address'
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Marie"
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Curie"
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{7,14}$'
+          example: "+33123456789"
+        biography:
+          type: string
+          maxLength: 2000
+          example: "Nouvelle biographie mise à jour."
+        photoUrl:
+          type: string
+          format: uri
+          example: "https://example.com/photos/marie.jpg"
+        address:
+          $ref: '#/components/schemas/Address'
+    Address:
+      type: object
+      required:
+        - country
+        - city
+      properties:
+        country:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "France"
+        city:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: "Paris"
+        street:
+          type: string
+          maxLength: 255
+          example: "10 rue de la Paix"
+        postalCode:
+          type: string
+          maxLength: 20
+          example: "75002"
+    UserType:
+      type: string
+      enum:
+        - ADMIN
+        - TEACHER
+        - STUDENT
+        - ALUMNI
+      example: STUDENT
+    UserStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+        - SUSPENDED
+      example: ACTIVE
+    Gender:
+      type: string
+      enum:
+        - MALE
+        - FEMALE
+        - OTHER
+      example: FEMALE
+    UserPage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+        - hasNext
+        - hasPrevious
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+          example:
+            - id: "123e4567-e89b-12d3-a456-426614174000"
+              keycloakId: "keycloak-abc-123"
+              email: "user1@example.com"
+              firstName: "Alice"
+              lastName: "Martin"
+              phone: "+33123456780"
+              photoUrl: "https://example.com/photos/alice.jpg"
+              biography: "Professeur de mathématiques."
+              birthDate: "1975-03-20"
+              gender: FEMALE
+              type: TEACHER
+              status: ACTIVE
+              address:
+                country: "France"
+                city: "Lyon"
+                street: "12 avenue des Champs"
+                postalCode: "69000"
+              createdAt: "2022-01-01T10:00:00Z"
+              updatedAt: "2023-01-01T10:00:00Z"
+            - id: "223e4567-e89b-12d3-a456-426614174001"
+              keycloakId: "keycloak-def-456"
+              email: "user2@example.com"
+              firstName: "Bob"
+              lastName: "Durand"
+              phone: "+33123456781"
+              photoUrl: "https://example.com/photos/bob.jpg"
+              biography: "Étudiant en informatique."
+              birthDate: "1998-07-15"
+              gender: MALE
+              type: STUDENT
+              status: ACTIVE
+              address:
+                country: "France"
+                city: "Marseille"
+                street: "5 rue de la République"
+                postalCode: "13000"
+              createdAt: "2022-06-01T10:00:00Z"
+              updatedAt: "2023-06-01T10:00:00Z"
+        page:
+          type: integer
+          minimum: 0
+          example: 0
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          example: 20
+        totalElements:
+          type: integer
+          minimum: 0
+          example: 2
+        totalPages:
+          type: integer
+          minimum: 0
+          example: 1
+        hasNext:
+          type: boolean
+          example: false
+        hasPrevious:
+          type: boolean
+          example: false
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2023-06-01T12:00:00Z"
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+          example: 400
+        message:
+          type: string
+          example: "Requête invalide"
+        path:
+          type: string
+          example: "/users"
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentification requise ou jeton invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: AccÃ¨s refusÃ©
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
