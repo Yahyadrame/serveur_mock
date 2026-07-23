@@ -6,6 +6,8 @@ servers:
     url: 'https://api.example.com/user-service'
   - description: SwaggerHub API Auto Mocking
     url: 'https://virtserver.swaggerhub.com/uasz-77e/user-service/1.0.0'
+  - description: Mock server déployé (Render)
+    url: 'https://serveur-mock.onrender.com'
 info:
   title: Alumni Platform - User Service API
   description: |
